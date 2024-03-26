@@ -1,7 +1,9 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
 const morgan = require("morgan");
+const Contact = require("./models/contact.js");
 
 const requestLogger = (request, response, next) => {
   console.log("Method:", request.method);
@@ -26,35 +28,37 @@ app.use(
 app.use(cors());
 app.use(express.static("dist"));
 
-let persons = [
-  {
-    id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
+// let persons = [
+//   // {
+//   //   id: 1,
+//   //   name: "Arto Hellas",
+//   //   number: "040-123456",
+//   // },
+//   // {
+//   //   id: 2,
+//   //   name: "Ada Lovelace",
+//   //   number: "39-44-5323523",
+//   // },
+//   // {
+//   //   id: 3,
+//   //   name: "Dan Abramov",
+//   //   number: "12-43-234345",
+//   // },
+//   // {
+//   //   id: 4,
+//   //   name: "Mary Poppendieck",
+//   //   number: "39-23-6423122",
+//   // },
+// ];
 
 app.get("/", (request, response) => {
   response.send("<h1>Hello darkness my old friend</h1");
 });
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Contact.find({}).then((contacts) => {
+    response.json(contacts);
+  });
 });
 
 app.get("/info", (request, response) => {
@@ -99,26 +103,23 @@ const generateId = () => {
 app.post("/api/persons", (request, response) => {
   const body = request.body;
 
-  if (personExists(body.name)) {
-    return response.status(400).json({
-      error: "name must be unique",
-    });
-  }
+  console.log("body name", body.name);
+  console.log("body number", body.number);
 
   if (!body.name || !body.number) {
-    return response.status(400).json({
-      error: "data missing",
-    });
+    return response
+      .status(400)
+      .json({ error: "please include both a name and number" });
   }
 
-  const person = {
-    id: generateId(),
+  const contact = new Contact({
     name: String(body.name),
-    number: String(body.number),
-  };
+    number: Number(body.number),
+  });
 
-  persons = persons.concat(person);
-  response.json(body);
+  contact.save().then((savedPerson) => {
+    response.json(savedPerson);
+  });
 });
 
 app.use(unknownEndpoint);
